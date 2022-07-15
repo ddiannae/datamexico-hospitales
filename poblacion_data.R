@@ -36,6 +36,8 @@ rangos <- tibble(rangos_edades = rangos_edades, rangos_20 = rangos_20)
 resp$data[resp$data["health_care"] == "Centro de Salud u Hospital de la SSA (Seguro Popular)", "health_care"] = "Seguro Popular"
 resp$data[resp$data["health_care"] == "Consultorio, clínica u hospital privado", "health_care"] = "Privado"
 
+vroom::vroom_write(resp$data, "data/poblacion_salud.tsv")  
+
  age_data_by_state <- resp$data %>% 
   group_by(state, health_care, age_range) %>%
   summarise(population = sum(population)) 
