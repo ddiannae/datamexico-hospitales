@@ -26,9 +26,9 @@ poblacion <- poblacion %>%
 dicc <- tibble(variable = c("POBTOT", "PSINDER", "PDER_SS", "PDER_IMSS", "PDER_ISTE",
           "PDER_ISTEE", "PAFIL_PDOM", "PDER_SEGP", "PDER_IMSSB",
           "PAFIL_IPRIV", "PAFIL_OTRAI"),
-          nombre = c("poblacion", "sin_afiliacion", "con_afiliacion", "IMSS", "ISSSTE", 
+          nombre = c("Población Total", "Sin afiliación", "Con afiliación", "IMSS", "ISSSTE", 
                      "ISSSTE estatal", "PEMEX, SEDENA, SEMAR", "SSA", "IMSS-BIENESTAR", 
                      "SMP", "OTRO"))
 
 poblacion <- poblacion %>% inner_join(dicc)
-vroom::vroom_write(poblacion, "data/poblacion.tsv")  
+vroom::vroom_write(poblacion, "data/poblacion.tsv")
