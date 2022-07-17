@@ -1,9 +1,16 @@
+## Script para descargar datos de las unidades de salud y 
+## sus recursos asociados desde datamexico
+
 library(vroom)
 library(dplyr)
-library(ggplot2)
-library(ggthemes)
+library(janitor)
 library(jsonlite)
 
+# Crear folder para guardar datos
+dir.create("data")
+
+# Datos de unidades de salud
+# Constuir la url para hacer consulta al api de datamexico
 dm_hospitales <- "https://api.datamexico.org/tesseract/data.jsonrecords?cube=health_establishments"
 dds <- c("State", "Municipality", "Areas", "CLUES", "Establishment+Type",  "Institution", "Latitud", "Longitud")
 mms <- c("Clinics", "Beds")
@@ -13,112 +20,61 @@ hosp_url <- paste0(dm_hospitales, "&",
                    drill, paste(dds, collapse = "%2C"), "&",
                    meas,  paste(mms, collapse = "%2C"), "&locale=es")
 
+# Ejecutar consulta
 resp <- jsonlite::fromJSON(txt = hosp_url)
+
+# Limpiar nombres de variables
 resp$data <- resp$data %>% 
   janitor::clean_names() %>% 
   as_tibble()
 
+# Guardar datos
 vroom::vroom_write(resp$data, "data/unidades_salud.tsv")
 
-### Unidades de salud por tipo de unidad
-p <- ggplot(resp$data, aes(x = state, fill = establishment_type)) +
-  geom_bar() +
-  theme_clean(base_size = 25) + 
-  labs(x = "Estado", y = "Total de unidades", title = "Unidades de salud por tipo") +
-  scale_fill_stata(name = "Tipo de unidad") +
-  theme(axis.text.x=element_text(angle = 90, hjust = 1, vjust = 0.5))
+# Datos de recursos en unidades de salud
+# Constuir la url para hacer consulta al api de datamexico
+dm_resources <- "https://api.datamexico.org/tesseract/data.jsonrecords?cube=health_resources"
+mms_resources <- c("Total")
+dds_resources <- c("State", "Municipality",  "CLUES", "Type", "Resources+Categories", "Year")
+meas <- "measures="
+drill <- "drilldowns="
+yr <- "Year="
 
-png("plots/unidad_tipo.png", width = 1200, height = 800)
-print(p)
-dev.off()
+# La consulta tiene que hacerse en dos pasos ya que si se solicitan
+# datos de más de 4 años, el servidor regresa un error
+years <- as.character(2017:2021)
+resources_url <- paste0(dm_resources, "&",
+                        yr, paste(years, collapse = "%2C"), "&",
+                        drill, paste(dds_resources, collapse = "%2C"), "&",
+                        meas,  paste(mms_resources, collapse = "%2C"))
 
-inst_mas100 <- resp$data %>% 
-  count(institution, sort = T) %>%
-  filter(n > 100) %>%
-  pull(institution)
+# Ejecutar consulta
+resp <- jsonlite::fromJSON(txt = resources_url)
 
-### Unidades de salud por institución, solo las que tienen más de 100
-p <- ggplot(resp$data %>%
-         filter(institution %in% inst_mas100)
-       , aes(x = state, fill = institution)) +
-  geom_bar() +
-  theme_clean(base_size = 25) + 
-  labs(x = "Estado", y = "Total de unidades", title = "Unidades de salud por institución") +
-  scale_fill_stata(name = "Institución") +
-  theme(axis.text.x=element_text(angle = 90, hjust = 1, vjust = 0.5))
+# Limpiar nombres de variables y filtrar filas que no contienen datos de recursos
+tb1 <- resp$data %>% 
+  janitor::clean_names() %>% 
+  as_tibble() %>%
+  filter(total > 0)
 
-png("plots/unidad_institucion.png", width = 1200, height = 800)
-print(p)
-dev.off()
+# Segunda consulta
+years <- as.character(2012:2016)
+resources_url <- paste0(dm_resources, "&",
+                        yr, paste(years, collapse = "%2C"), "&",
+                        drill, paste(dds_resources, collapse = "%2C"), "&",
+                        meas,  paste(mms_resources, collapse = "%2C"))
 
-con_camas <- resp$data %>%
-  filter(beds > 0)
+# Ejecutar consulta
+resp <- jsonlite::fromJSON(txt = resources_url)
 
-### Unidades de salud con camas
-p <- ggplot(con_camas , aes(x = state, fill = institution)) +
-  geom_bar() +
-  theme_clean(base_size = 25) + 
-  labs(x = "Estado", y = "Total de unidades", title = "Unidades de salud con camas por institución") +
-  scale_fill_stata(name = "Institución") +
-  theme(axis.text.x=element_text(angle = 90, hjust = 1, vjust = 0.5))
+# Limpiar nombres de variables y filtrar filas que no contienen datos de recursos
+tb2 <- resp$data %>% 
+  janitor::clean_names() %>% 
+  as_tibble() %>%
+  filter(total > 0)
 
-png("plots/unidadcamas_institucion.png", width = 1200, height = 800)
-print(p)
-dev.off()
+# Unir tibbles
+data <- dplyr::bind_rows(tb1, tb2)
 
-con_camas_by_inst <- con_camas %>% 
-  group_by(state, institution) %>%
-  summarise(beds = sum(beds))
-
-con_camas_by_est <- con_camas %>%
-  group_by(state) %>%
-  summarise(total_beds = sum(beds)) %>%
-  mutate(category = case_when(
-    total_beds > 10000 ~ "mas_diez",
-    total_beds > 5000 ~ "mas_cinco",
-    total_beds > 3000 ~ "mas_tres",
-    TRUE ~ "menos_tres"
-  ))
-
-### Camas totales por estado
-p <- ggplot(con_camas_by_est , aes(x = state, y = total_beds, label = total_beds)) +
-  geom_bar(stat = "identity") +
-  geom_text( nudge_y = 1000) +
-  theme_clean(base_size = 25) + 
-  labs(x = "Estado", y = "Total de camas", title = "Camas por estado") +
-  theme(axis.text.x=element_text(angle = 90, hjust = 1, vjust = 0.5))
-
-png("plots/camas_estado.png", width = 1200, height = 800)
-print(p)
-dev.off()
-
-st_categories <- c("mas_diez", "mas_cinco","mas_tres", "menos_tres" )
-names(st_categories) <- c("Más de diez mil camas", "Entre 5 mil y 10 mil camas",
-                          "Entre 3 mil y 5 mil camas", "Menos de 3 mil camas")
-
-con_camas_by_inst <- con_camas_by_inst %>% 
-  inner_join(con_camas_by_est, by = "state")
-institutions <- unique(con_camas_by_inst$institution)
-colors <- stata_pal("s2color")(length(institutions))
-names(colors) <- institutions
-
-for (i in 1:length(st_categories)) {
-  p <- con_camas_by_inst %>%
-    filter(category == st_categories[i]) %>%
-    ggplot(aes(x = institution, fill = institution, y = beds)) +
-    geom_bar(stat = "identity") +
-    theme_clean(base_size = 25) + 
-    labs(x = "", y = "Total de camas", title = "Camas en unidades de salud por institución", 
-         subtitle = names(st_categories[i])) +
-    scale_fill_manual(values = colors, name = "Tipo") +
-    theme(axis.text.x=element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    facet_wrap(~paste0(state, "\n", total_beds))
-  
-  png(paste0("plots/camas_institucion_", st_categories[i], ".png"), width = 1400, height = 1000)
-  print(p)
-  dev.off()
-}
-
-camas_by_state <- con %>% 
-  group_by(state, institution) %>%
-  summarise(beds = sum(beds))
+# Guardar datos
+vroom::vroom_write(data, "data/recursos_salud.tsv")
