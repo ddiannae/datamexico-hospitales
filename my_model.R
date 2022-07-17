@@ -34,6 +34,7 @@ pob.mun <-
          ) %>% 
   select(-POBTOT)
 
+pob.mun %>% vroom_write("etl/vars_pop.txt")
 # letalidad ---- 
 
 letalidad_covid <- vroom("letalidad_por_olas_covid.txt")

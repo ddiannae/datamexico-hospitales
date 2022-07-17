@@ -36,6 +36,10 @@ mun_df <-
 #join neighbors bed, pop so that we can have 
 
 
+recursos_folded <- 
+  camas_capita %>% 
+  select(CVEGEO, institucion_id, derechohabientes = poblacion, beds, clinics)
+
 recursos_unfolded <- 
   camas_capita %>% 
   select(CVEGEO, institucion_id, derechohabientes = poblacion, beds, clinics) %>% 
@@ -57,3 +61,34 @@ recursos.neighborhood <-
 vroom_write(recursos.neighborhood, "etl/recursos_vecindario.txt")
 vroom_write(mun_df, file = "etl/red_adyacencia_muns.txt")
 
+
+
+#quiero 
+# camas normalizadas por poblacion derechohabiente 
+# camas normalizadas por poblacion del municipio i 
+
+recursos_vecinos.long <- 
+  left_join(mun_df, recursos_folded, by=c("V2"="CVEGEO")) %>% 
+  group_by(V1, institucion_id) %>% 
+  #summarize(across(where(is.numeric), sum, .names = "{.col}.neighbors"))
+  summarize(across(where(is.numeric), sum)) %>% 
+  pivot_longer(cols = -c("V1", "institucion_id"), 
+               names_to = "variable", 
+               values_to = "vecino") %>% 
+  rename(CVEGEO = V1)
+
+recursos_locales.long <- 
+  recursos_folded %>% 
+  pivot_longer(cols = -c("CVEGEO", "institucion_id"), 
+               names_to = "variable", 
+               values_to = "mun")
+
+
+
+  left_join(recursos_locales.long, recursos_vecinos.long) %>% 
+  mutate(full = mun + vecino) %>% 
+  mutate(mun.contrib = 100*mun/full) %>% 
+  pivot_wider(names_from = c(variable, institucion_id), 
+              values_from = c(mun, vecino, full, mun.contrib)
+              ) %>% 
+    vroom_write(., file = "etl/recursos_propios_vecinos.txt")
