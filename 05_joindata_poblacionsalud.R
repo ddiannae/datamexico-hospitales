@@ -95,12 +95,22 @@ population_by_mun_inst <- population_by_mun_inst %>%
   dplyr::rename("poblacion" = "valor") %>%
   dplyr::ungroup()
 
+
+# Remover otros del diccionario y reagrupar PAFIL_PDOM
+dicc <- dicc %>%
+  filter(variable != "PAFIL_OTRAI") 
+
+dicc[dicc["variable"] == "PAFIL_PDOM", "nombre_institucion"] <- "Pemex, Secretaría de la Defensa Nacional, 	
+Secretaría de Marina"
+dicc[dicc["variable"] == "PAFIL_PDOM", "institution"] <- "PEMEX, SEDENA, SEMAR"
+dicc <- dicc %>% unique()
+
 # Unir datos de población con datos de recursos de unidades de salud
 recursos_pop_by_mun_inst <- population_by_mun_inst %>% 
   dplyr::left_join(cb_by_mun_inst, by = c("municipality", "municipality_id", "variable")) %>%
-  dplyr:: left_join(dicc %>% select(variable, nombre_institucion), by = "variable") %>%
-  dplyr::select(state_id, state, municipality_id, municipality, variable_inegi = variable, 
-         institucion = nombre, nombre_institucion,poblacion, camas, clinicas, personal) %>%
+  dplyr:: left_join(dicc, by = "variable") %>%
+  dplyr::select(state_id, state, municipality_id, municipality, institucion_inegi = variable, 
+         institucion = nombre, nombre_institucion, poblacion, camas, clinicas, personal) %>%
   dplyr::mutate(across(where(is.numeric), .fns = ~replace(., is.na(.), 0)))
 
 # Guardar datos
