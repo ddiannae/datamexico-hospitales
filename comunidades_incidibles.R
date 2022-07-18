@@ -158,6 +158,14 @@ deficiencia_sobrecontribucion_camas <-
   mutate(z_score = (camas - camas.comm.avg)/camas.comm.sd)
   
 
+left_join(mun_shp, deficiencia_sobrecontribucion_camas) %>% 
+  ggplot()  + 
+  geom_sf(aes(fill=z_score), lwd=0.05) + 
+  #scale_fill_distiller("Z-score", palette = "RdBu", direction = -1, ) +
+  scale_fill_gradient2("Z-score", low = "blue", mid = "white", high = "red", midpoint = 0, na.value = "blue") + 
+  ggtitle("Contribución de camas del municipio a su Comunidad de Servicios de Salud")  + 
+  labs(caption = "Los municipios azules aportan menos camas a la CSS;\n
+       los municipios rojos sobrecompensan la necesidad de camas")
 # mis_comms %>% 
 #   left_join(poblacion.light) %>% 
 #   left_join(camas_capita.light) %>% 
