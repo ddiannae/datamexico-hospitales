@@ -10,5 +10,5 @@ download.file("https://www.inegi.org.mx/contenidos/productos/prod_serv/contenido
               temp)
 
 # Guardar archivo
-unzip(temp, files = "conjunto_de_datos/00mun.shp", exdir = "data", 
+unzip(temp, files = c("conjunto_de_datos/00mun.shp", "conjunto_de_datos/00mun.shx"), exdir = "data", 
       junkpaths = TRUE)
