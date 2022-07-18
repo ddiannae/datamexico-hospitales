@@ -8,15 +8,12 @@ library(tidymodels)
 library(sf)
 
 
-
-
-
 ################################################################################
 #leer datos --- 
 ################################################################################
 
 #datos covid cfr ----
-cfr <- vroom("letalidad_por_olas_covid.txt")
+cfr <- vroom("data/letalidad_por_olas_covid.txt")
 
 #datos poblacion ----
 pop <- vroom("etl/vars_pop.txt")
@@ -25,11 +22,10 @@ pop <- vroom("etl/vars_pop.txt")
 recursos <- vroom("etl/recursos_propios_vecinos.txt")
 
 #pruebas por mun  ----
-
-num_pruebas <- vroom("pruebas_por_ola.txt")
+num_pruebas <- vroom("data/pruebas_por_ola.txt")
 
 #para normalizar necesito poblaciones 
-poblacion <- vroom("~/DATA/censo_2020/iter_00_cpv2020_csv/conjunto_de_datos/conjunto_de_datos_iter_00CSV20.csv") %>% filter(NOM_LOC=="Total del Municipio")
+poblacion <-  poblacion <- vroom("data/poblacion_demo.tsv")
 
 num_pruebas <- 
   poblacion %>% 
@@ -43,7 +39,6 @@ num_pruebas <-
 ################################################################################
 #unir datos --- 
 ################################################################################
-
 x <- 
   left_join(cfr, pop) %>% 
   left_join(recursos) %>% 
@@ -185,13 +180,4 @@ mis_modelos <-
 mis_modelos$HTMPI$metrics_tune
 lapply(mis_modelos, function(i){i[["var_importance"]]})
 
-write_rds(mis_modelos, "modelo_v2.rds")
-
-# x %>%
-#   #filter(casos_totales > 1000) %>% 
-#   ggplot() + 
-#   aes(mun_derechohabientes_PDER_IMSS, cfr) + 
-#   geom_smooth(method = "lm")  + 
-#   geom_point() + 
-#   facet_wrap(vars(ola)) + 
-#   ggpubr::stat_regline_equation(aes(label = ..rr.label..))
+write_rds(mis_modelos, "results/modelo_v2.rds")

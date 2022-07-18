@@ -76,7 +76,7 @@ mis_comms <-
   select(CVEGEO = name, comm_infomap) %>% 
   left_join(mi_paleta)
 
-mun_shp <- read_sf("data/conjunto_de_datos/00mun.shp")
+mun_shp <- read_sf("data/00mun.shp")
 camas_capita <- vroom("data/recursos_poblacion_by_institucion_municipio.tsv")
 poblacion.light <- poblacion %>% mutate(CVEGEO = paste0(ENTIDAD, MUN)) %>% select(CVEGEO, POBTOT)
 
