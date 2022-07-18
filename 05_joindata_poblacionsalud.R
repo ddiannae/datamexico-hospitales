@@ -7,7 +7,7 @@ library(vroom)
 library(dplyr)
 
 # Leer los datos
-poblacion <- vroom::vroom("data/poblacion.tsv")
+poblacion <- vroom::vroom("data/poblacion_salud.tsv")
 unidades <- vroom::vroom("data/unidades_salud.tsv") %>%
   filter(municipality != "No Informado")
 recursos <-  vroom::vroom("data/recursos_salud.tsv")
