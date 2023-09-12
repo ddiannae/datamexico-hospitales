@@ -65,60 +65,6 @@ png(paste0("plots_corr/hab_clinicas_75mil.png"), width = 1200, height = 800)
 print(p)
 dev.off()
 
-cb_by_mun_inst <- hospitales %>%
-  group_by(municipality_id, municipality, institution) %>%
-  summarise(beds = sum(beds), clinics = sum(clinics))
-
-population_by_mun_inst <- poblacion %>%
-  filter(!variable %in% c("PSINDER", "PDER_SS", "POBTOT"))
-
-sort(unique(cb_by_mun_inst$institution))
-# [1] "CIJ"            "CRO"            "DIF"            "FGE"            "HUN"            "IMSS"           "IMSS-BIENESTAR"
-# [8] "ISSSTE"         "PEMEX"          "PGR"            "SCT"            "SEDENA"         "SEMAR"          "SME"           
-# [15] "SMM"            "SMP"            "SSA"
-sort(unique(population_by_mun_inst$variable))
-ninst_salud <- c("Centros de Integración Juvenil", "Cruz Roja Mexicana", 
-                 "Sistema Nacional para el Desarrollo Integral de la Familia", "Fiscalía General del Estado",
-                 "Servicios Médicos Universitarios", "Instituto Mexicano del Seguro Social", 
-                 "IMSS-Bienestar", "Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado",
-                 "Pemex", "Procuraduría General de la República", "Secretaría de Comunicaciones y Transportes",
-                 "Secretaría de la Defensa Nacional", "Secretaría de Marina", "Servicios Médicos Estatales", 
-                 "Servicios Médicos Municipales", "Servicios Médicos Privados", "Secretaría de Salud")
-
-var_salud <- c("PAFIL_OTRAI", "PAFIL_OTRAI", "PAFIL_OTRAI", "PAFIL_OTRAI", "PAFIL_OTRAI", "PDER_IMSS", "PDER_IMSSB",
-               "PDER_ISTE", "PAFIL_PDOM", "PAFIL_OTRAI", "PAFIL_OTRAI", "PAFIL_PDOM", "PAFIL_PDOM", "PAFIL_OTRAI", 
-               "PAFIL_OTRAI", "SMP", "SSA")
-
-dicc <- tibble(institution = sort(unique(cb_by_mun_inst$institution)), 
-               nombre_institucion = ninst_salud, variable = var_salud)
-
-cb_by_mun_inst <- cb_by_mun_inst %>%
-  inner_join(dicc, by = "institution") 
-
-## Quitamos los que dicen otro y agregamos para sumar Pemex, sedena y semar  
-cb_by_mun_inst <- cb_by_mun_inst %>%
-  filter(variable != "PAFIL_OTRAI") %>%
-  group_by(across(-c(beds, clinics))) %>%
-  summarise(beds = sum(beds), clinics = sum(clinics)) %>%
-  ungroup()
-  
-cb_by_mun_inst[cb_by_mun_inst["variable"] == "PAFIL_PDOM", "nombre_institucion"] <- "PEMEX, SEDENA, SEMAR"
-
-## Cambiamos ISSSTE estatal por otro
-population_by_mun_inst[population_by_mun_inst["variable"] == "PDER_ISTEE", "nombre"] <- "Otro"
-population_by_mun_inst[population_by_mun_inst["variable"] == "PDER_ISTEE", "variable"] <- "PAFIL_OTRAI"
-
-population_by_mun_inst <- population_by_mun_inst %>%
-  group_by(across(-valor)) %>%
-  summarise(valor = sum(valor)) %>%
-  filter(variable != "PAFIL_OTRAI") %>%
-  rename("poblacion" = "valor") %>%
-  ungroup()
-
-beds_clinics_pop_by_mun_inst <- population_by_mun_inst %>% 
-  left_join(cb_by_mun_inst, by = c("municipality", "municipality_id", "variable")) %>%
-  select(state_id, state, municipality_id, municipality, institucion_id = variable, institucion = nombre, poblacion, beds, clinics) %>%
-  mutate(across(where(is.numeric), .fns = ~replace(., is.na(.), 0)))
 
 vroom_write(beds_clinics_pop_by_mun_inst, "data/poblacion_camas_clinicas_institucion.tsv")
 

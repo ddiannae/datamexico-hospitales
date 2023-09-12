@@ -62,6 +62,11 @@ poblacion_demo <- poblacion_demo %>%
   filter(NOM_LOC == "Total del Municipio") %>%
   select(-LOC, -NOM_LOC) 
 
+# Acortar nombres de estados
+poblacion_demo[poblacion_demo["state_id"] == 5, "state"] = "Coahuila"
+poblacion_demo[poblacion_demo["state_id"] == 16, "state"] = "Michoacán"
+poblacion_demo[poblacion_demo["state_id"] == 30, "state"] = "Veracruz"
+
 # Guardar datos
 vroom::vroom_write(poblacion_demo, "data/poblacion_demo.tsv")
 
